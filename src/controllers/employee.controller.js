@@ -23,3 +23,6 @@ exports.findAll = function(req, res) {
         res.send(employee);
     });
 };
+exports.test = function(req,res) {
+    res.send('testing');
+}
