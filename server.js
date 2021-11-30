@@ -1,5 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const bcrypt = require('bcryptjs');
 
 const app = express();
 
@@ -24,9 +25,10 @@ app.listen(port, () => {
 
 // Require employee routes
 const employeeRoutes = require('./src/routes/employee.routes')
+const users = require('./src/routes/user.routes')
 // using as middleware
 app.use('/api/v1/employees', employeeRoutes)
-app.use('/api/v1/employees/test', employeeRoutes)
+app.use('/api/v1/users', users)
 
 // 
 const mysql = require('mysql');
@@ -41,29 +43,82 @@ dbConn.connect(function(err) {
     if (err) throw err;
     console.log("Database Connected! in index");
 });
-/* let email = 'janedoe@gmail.com'
-var ex = dbConn.query(`Select * from employees where email = '${email}'`,(err,res) => {
-    console.log('res',res);
-    console.log('err',err);
-}); */
 app.get('/getAllEmployees', (req,res) => {
     dbConn.query(`Select * from employees`,(error,response) => {
-        res.send(response)
+        if(error)
+            res.send(error);
+        res.send({
+            status : 200,
+            data : response
+        })
     });
 })
-// let currDate = new Date();
-let currDate = 0;
-/* let sqlQ = `INSERT INTO employees (id,first_name,last_name,email,phone,organization,designation,salary,status,is_deleted,created_at) 
-VALUES ('first_name','last_name','email','phone','organization','designation','salary','status',0,${currDate},${currDate})`; */
-let query = `INSERT INTO employees 
-        (first_name,last_name,email,phone,organization,designation,salary,status,is_deleted,created_at,updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`;
 app.post('/addEmployee',(request, response) => {
-    // console.log(request.body);      // your JSON
-    // response.send(request.body);    // echo the result back
-    dbConn.query(query,[request.body.firstName,request.body.lastName,request.body.email,request.body.phone,request.body.organization,request.body.designation,request.body.salary,1,0,new Date(),new Date()],(err,res) => {
-        console.log(err);
-        console.log(res);
-        response.send(res);
-    })
-})  
-// console.log('ex',ex);
+    let query = `INSERT INTO employees 
+            (first_name,last_name,email,phone,organization,designation,salary,status,is_deleted,created_at,updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`;
+    if(request){
+        dbConn.query(query,[request.body.firstName,request.body.lastName,request.body.email,request.body.phone,request.body.organization,request.body.designation,request.body.salary,1,0,new Date(),new Date()],(err,res) => {
+            if(err){
+                response.send({
+                    status : 500,
+                    error : err
+                })    
+            }
+            response.send({
+                status : 200,
+                data : res
+            });
+        })
+    }else{
+        res.send({
+            status : 400,
+            status_message : 'Invalid Response'
+        })
+    }
+})
+app.get('/test',(req,res) => {
+    bcrypt.hash('mypassword', 10, function(err, hash) {
+        res.send(hash);
+    });
+})
+
+app.post('/addUser',(request, response) => {
+    // console.log('request',request);
+    let query = `INSERT INTO users
+                (FirstName,LastName,Email,ProfilePic,Password)
+                VALUES (?, ?, ?, ?, ?);`;
+    if(request.body){
+        // console.log('bfr hash',request.body.password);
+        // response.send(request.body.password);
+        let password = request.body.password;
+        console.log('password',password);
+        bcrypt.hash('mypassword', 10, function(err, hash) {
+            console.log('hash err',err);
+            console.log('passafterhash',hash);
+            dbConn.query(query,[request.body.firstName,request.body.lastName,request.body.email,'',hash], (err,res) => {
+                console.log('res',res);
+                console.log('err',err);
+                if(err){
+                    response.send({
+                        status : 500,
+                        error : err
+                    })    
+                }
+                if(res.insertId){
+                    response.send({
+                        status : 200,
+                        data : res
+                    });
+                }
+            })
+        },(error) =>{
+            res.status(500).send(error);
+        })
+    }else{
+        response.send({
+            status : 400,
+            status_message : 'Invalid Request'
+        })
+    }
+})
+

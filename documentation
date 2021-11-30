@@ -1,0 +1,20 @@
+Documentation
+NodeJS
+1) Query to create table 
+	CREATE TABLE users (
+	UserID int NOT NULL PRIMARY KEY,
+	FirstName varchar(255) NOT NULL,
+	LastName varchar(255),
+	Email varchar(255) NOT NULL,
+	ProfilePic varchar(255),
+	Password varchar(255) NOT NULL
+	);
+	alter TABLE users ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+2) Password Encryption
+	to hash password bcrypt library help you to hash passwords
+	npm install bcrypt
+	var bcrypt = require('bcrypt');
+	bcrypt.hash(mypassword, saltRounds, function(err, hash) {
+		return hash
+	});
