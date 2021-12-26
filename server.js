@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 
@@ -17,6 +18,43 @@ app.get('/', (req, res) => {
     res.send("Hell Yeah!!");
 });
 
+app.post('/protectedRoute', verifyToken,(req,res) => {
+    jwt.verify(req.token,'someSecretKey', (err,auth) => {
+        if(err){
+            console.log('err',err);
+            res.sendStatus(403);
+        }else{
+            res.json({
+                message: 'Post created...',
+                auth
+            });
+        }
+    })
+})
+
+app.get('/createJWT',  (req, res) => {
+    const user = {
+        id: 1, 
+        username: 'brad',
+        email: 'brad@gmail.com'
+    }
+    jwt.sign({user},'someSecretKey',(err,token) => {
+        res.status(200).send(token)
+    })
+});
+
+function verifyToken(req, res, next){
+    const bearerHeader = req.headers['authorization'];
+    if(bearerHeader){
+        const bearer = bearerHeader.split(' ');
+        const bearerToken = bearer[1];
+        req.token = bearerToken;
+        next();
+    }else{
+        res.sendStatus(403);
+    }
+    
+}
 
 // listen for requests
 app.listen(port, () => {
