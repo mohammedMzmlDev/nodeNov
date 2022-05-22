@@ -1,6 +1,8 @@
 var dbConn = require('./../../config/db.config');
 const bcrypt = require('bcryptjs');
 var crypto = require('crypto');
+const jwt = require('jsonwebtoken');
+const res = require('express/lib/response');
 
 // Fetch all users
 exports.all = (result) => {
@@ -22,7 +24,7 @@ exports.addUser = async (user, result) => {
             result(null, err);
         }
         if(res && res[0].email > 0){
-            result(null,'Email already exist');
+            result({status:400,message:'Email already exist'});
         }else{
             let query = `INSERT INTO users
             (FirstName,LastName,Email,ProfilePic,Password)
@@ -42,21 +44,69 @@ exports.addUser = async (user, result) => {
 
 // User Login
 exports.userLogin = async (data, result) => {
-    let query = `SELECT * FROM users WHERE Email = '${data.email}'`;
-    // console.log('query',query);
-    dbConn.query(query, async (err,res) => {
-        if(err){
-            result(null, err);
-        }
-        bcrypt.compare(data.password, res[0].Password, function(err, res) {
+    if(data && data.email && data.password){
+        let query = `SELECT * FROM users WHERE Email = '${data.email}'`;
+        console.log('query',query);
+        dbConn.query(query, async (err,res) => {
+            console.log('res',res[0].FirstName);
             if(err){
                 result(null, err);
             }
-            if(res){
-                result(null, 'Login Success');
+            if(res.length){
+                try {
+                    bcrypt.compare(data.password, res[0].Password, async function(err, comResult) {
+                        if(err){
+                            result(null, err);
+                        }
+                        if(comResult){
+                            let jToken = await createJwt({
+                                username: res[0].FirstName,
+                                userID: res[0].UserID,
+                                email : res[0].Email
+                            });
+                            result(null, {
+                                status : 200,
+                                auth_token : jToken,
+                                message : 'Login Success'
+                            });
+                        }else{
+                            result(null, 'Invalid Password');
+                        }
+                    });
+                } catch (error) {
+                    result({
+                        status : 401,
+                        message : error
+                    },null);
+                }
             }else{
-                result(null, 'Invalid Password');
+                result({
+                    status : 204,
+                    message : 'No record exist for given email'
+                },null);
             }
-        });
-    })
+        })
+    }else{
+        result({
+            status : 401,
+            message : 'Invalid Input'
+        },null);
+    }
+}
+// Function to create JWT
+function createJwt(request) {
+    console.log('request in create jwt',request);
+    try {
+        return new Promise((resolve, reject) => {
+            jwt.sign( request , 'authKey', (err, token) => {
+                if (err) {
+                    return reject(err)
+                } 
+                console.log('token in create jwt',token);
+                resolve(token);
+            })
+        })
+    } catch (error) {
+        return error
+    }
 }

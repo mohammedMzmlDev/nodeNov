@@ -18,6 +18,12 @@ app.get('/', (req, res) => {
     res.send("Hell Yeah!!");
 });
 
+var cors = require('cors')
+
+
+app.options('*', cors()) // include before other routes 
+app.use(cors())
+
 app.post('/protectedRoute', verifyToken,(req,res) => {
     jwt.verify(req.token,'someSecretKey', (err,auth) => {
         if(err){
@@ -64,9 +70,11 @@ app.listen(port, () => {
 // Require employee routes
 const employeeRoutes = require('./src/routes/employee.routes')
 const users = require('./src/routes/user.routes')
+const postsRouts = require('./src/routes/post.routes')
 // using as middleware
 app.use('/api/v1/employees', employeeRoutes)
 app.use('/api/v1/users', users)
+app.use('/api/v1/posts',verifyToken,postsRouts)
 
 // 
 const mysql = require('mysql');

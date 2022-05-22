@@ -12,7 +12,7 @@ exports.create = (req,res) => {
         USER.addUser(req.body,(err,user) => {
             if (err)
             res.send(err);
-            res.json({user});
+            res.json(user);
         })
     }else{
         res.status(400).send('Invalid Email');
@@ -21,8 +21,13 @@ exports.create = (req,res) => {
 
 exports.login = (req,res) => {
     USER.userLogin(req.body,(err,data) => {
-        if (err)
-        res.send(err);
-        res.send(data);
+        console.log('data----------',data);
+        if (err){
+            res.send({
+                status : 401,
+                error : err
+            });
+        }
+        res.status(200).send(data);
     })
 }
